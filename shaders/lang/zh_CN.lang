@@ -1243,6 +1243,8 @@ option.CUSTOM_SKY_BRIGHTNESS           = 自定义天空亮度
 option.CUSTOM_SKY_BRIGHTNESS.comment   = 自定义天空的亮度
 option.DAYLIGHT_CYCLE                  = 启用昼夜循环
 option.DAYLIGHT_CYCLE.comment          = 当游戏规则 doDaylightCycle 为 false 时禁用，以防止更改时间时出现云层拖尾
+option.DITHERED_TRANSLUCENCY_FALLBACK  = 抖动透明度回退
+option.DITHERED_TRANSLUCENCY_FALLBACK.comment = 在启用分离绘制实体时，使用抖动透明度来改善本应透明但无法透明的物体的外观，部分旗帜条纹正常显示.
 
 value.DEBUG_VIEW.DEBUG_VIEW_NONE       = 关
 value.DEBUG_VIEW.DEBUG_VIEW_SAMPLER    = 采样器

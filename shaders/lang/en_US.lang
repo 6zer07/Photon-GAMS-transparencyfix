@@ -1301,6 +1301,8 @@ option.ENCHANTMENT_GLINT_BRIGHTNESS    = Enchantment Glint Brightness
 option.ENCHANTMENT_GLINT_R             = Enchantment Glint Red
 option.ENCHANTMENT_GLINT_G             = Enchantment Glint Green
 option.ENCHANTMENT_GLINT_B             = Enchantment Glint Blue
+option.DITHERED_TRANSLUCENCY_FALLBACK       = Dithered Translucency Fallback
+option.DITHERED_TRANSLUCENCY_FALLBACK.comment = Uses dithered transparency for objects that should be translucent but cannot be blended, so some banner stripes display correctly.
 
 value.DEBUG_VIEW.DEBUG_VIEW_NONE       = OFF
 value.DEBUG_VIEW.DEBUG_VIEW_SAMPLER    = Sampler

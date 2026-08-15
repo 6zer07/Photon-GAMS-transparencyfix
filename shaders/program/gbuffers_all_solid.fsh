@@ -263,6 +263,20 @@ void main() {
 	if (base_color.a < 0.1) { discard; return; }
 #endif
 
+#if (defined PROGRAM_GBUFFERS_BLOCK || defined PROGRAM_GBUFFERS_ENTITIES || defined PROGRAM_GBUFFERS_HAND) && !(defined USE_SEPARATE_ENTITY_DRAWS && defined IS_IRIS)
+	#ifdef DITHERED_TRANSLUCENCY_FALLBACK
+	// Dithered transparency for translucent objects rendered as solid
+	float dither_pattern = r1(
+		frameCounter, 
+		texelFetch(noisetex, ivec2(gl_FragCoord.xy) & 511, 0).z
+	);
+	// The 0.55 multiplier makes translucent blocks more opaque than the default
+	// dithered fallback (which renders them at exactly their texture alpha).
+	// Increase it (up to 1.0) for more transparency, decrease it for more opacity.
+	if (base_color.a < dither_pattern * 0.55) { discard; return; }
+	#endif
+#endif
+
 #ifdef WHITE_WORLD
 	base_color.rgb = vec3(1.0);
 #endif
@@ -304,7 +318,7 @@ void main() {
 	adjusted_light_levels *= mix(0.7, 1.0, material_ao);
 
 	#ifdef DIRECTIONAL_LIGHTMAPS
-	adjusted_light_levels *= get_directional_lightmaps(normal);
+	adjusted_light_levels *= get_directional_lightmaps(scene_pos, normal);
 	#endif
 #endif
 
@@ -353,4 +367,3 @@ void main() {
 	if (base_color.r < 0.29 && base_color.g < 0.45 && base_color.b > 0.75) discard;
 #endif
 }
-

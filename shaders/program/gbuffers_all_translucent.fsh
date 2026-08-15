@@ -398,6 +398,13 @@ void main() {
 
 	vec2 adjusted_light_levels = light_levels;
 
+#ifdef NO_NORMAL
+	// No normal vector => make one from screen-space partial derivatives
+	// NB: It is important to do this before the alpha discard, otherwise it creates issues on the
+	// outline of things
+	normal = normalize(cross(dFdx(position_scene), dFdy(position_scene)));
+#endif
+
 #if defined (PHYSICS_MOD_OCEAN) && defined (PHYSICS_OCEAN)
 	WavePixelData wave;
 #endif
@@ -455,9 +462,28 @@ void main() {
 		fragment_color.rgb = mix(fragment_color.rgb, entityColor.rgb, entityColor.a);
 #endif
 
-		if (fragment_color.a < 0.1) discard;
+		if (fragment_color.a < 0.1) { discard; return; }
 
+#if defined PROGRAM_GBUFFERS_PARTICLES_TRANSLUCENT
+		// Kill the vanilla rain particles while it is raining.
+		// The rain/splash sprite (splash_0..3) is a strongly blue dot, unlike
+		// smoke (gray) and potion/effect particles (white, tinted). The Iris
+		// `weather = true false` directive normally disables their spawning;
+		// this is a shader-side guarantee so the camera-following particle
+		// rain never shows even if the directive is not honored.
+		if (rainStrength > 0.01 && fragment_color.b > 2.0 * fragment_color.r && fragment_color.b > 1.7 * fragment_color.g) {
+			discard;
+			return;
+		}
+#endif
+
+#if defined PROGRAM_GBUFFERS_PARTICLES_TRANSLUCENT || defined PROGRAM_GBUFFERS_TEXTURED
+		// Particles and textured geometry use straight (non-premultiplied) albedo,
+		// matching the PLUS release. Premultiplying here dims low-alpha particles.
+		material = material_from(fragment_color.rgb, material_mask, world_pos, tbn[2], adjusted_light_levels);
+#else
 		material = material_from(fragment_color.rgb * fragment_color.a, material_mask, world_pos, tbn[2], adjusted_light_levels);
+#endif
 
 #if defined PROGRAM_GBUFFERS_LIGHTNING
 		// Lightning (since gbuffers_lightning)
@@ -467,7 +493,7 @@ void main() {
 
 		//--//
 
-#ifdef NORMAL_MAPPING
+#if defined NORMAL_MAPPING && !defined NO_NORMAL
 		float material_ao;
 		decode_normal_map(normal_map, normal_tangent, material_ao);
 
@@ -476,7 +502,7 @@ void main() {
 		adjusted_light_levels *= mix(0.7, 1.0, material_ao);
 
 	#ifdef DIRECTIONAL_LIGHTMAPS
-		adjusted_light_levels *= get_directional_lightmaps(normal);
+		adjusted_light_levels *= get_directional_lightmaps(position_scene, normal);
 	#endif
 #endif
 
@@ -484,12 +510,11 @@ void main() {
 		decode_specular_map(specular_map, material);
 #endif
 
-#ifdef NO_NORMAL
-		// No normal vector => make one from screen-space partial derivatives
-		normal = normalize(cross(dFdx(position_scene), dFdy(position_scene)));
-#endif
-
+#if defined PROGRAM_GBUFFERS_PARTICLES_TRANSLUCENT || defined PROGRAM_GBUFFERS_TEXTURED
+		// Keep particle alpha as-is (matches the PLUS release).
+#else
 		fragment_color.a = sqrt(fragment_color.a);
+#endif
 	}
 
 #if defined (PHYSICS_MOD_OCEAN) && defined (PHYSICS_OCEAN)
@@ -595,13 +620,16 @@ void main() {
 	} 
 #endif 
 
+#if defined PROGRAM_GBUFFERS_PARTICLES_TRANSLUCENT || defined PROGRAM_GBUFFERS_TEXTURED
+	// Particles/textured keep straight (non-premultiplied) colors, matching PLUS.
+#else
 	fragment_color = vec4(fragment_color.rgb / max(fragment_color.a, eps), fragment_color.a);
+#endif
 
 	// Fog
 
 	vec4 fog = common_fog(length(position_scene), false);
 	fragment_color.rgb  = fragment_color.rgb * fog.a + fog.rgb;
-	fragment_color.a   *= border_fog(position_scene, direction_world);
 
 	// Purkinje shift
 
@@ -614,4 +642,3 @@ void main() {
 	refraction_data.zw = split_2x8(normal_tangent.y * 0.5 + 0.5);
 #endif
 }
-
